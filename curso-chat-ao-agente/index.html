@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Do chat ao agente — IESA/UFG</title>
+<style>
+:root{--accent:#274c59;--accent-dark:#193b48;--bg:#f2f1ed;--ink:#24353c;--muted:#51616a;--line:#d5dddf;--danger:#8c2f2f;--ok:#245c3a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,sans-serif}
+main{max-width:760px;margin:0 auto;padding:38px 22px 64px}
+header{padding-bottom:26px;border-bottom:2px solid var(--accent);margin-bottom:26px}
+.eyebrow{font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#536970;margin:0}
+h1{font:normal clamp(28px,5vw,38px)/1.15 Georgia,serif;margin:10px 0 12px;letter-spacing:-.4px}
+h2{font-size:20px;margin:0 0 10px}
+header p{color:var(--muted);margin:8px 0}
+.card{background:#fff;border:1px solid var(--line);border-radius:6px;padding:24px;margin:0 0 18px}
+.field{margin:0 0 22px}
+.field:last-child{margin-bottom:0}
+label,.legend{display:block;font-weight:600;margin:0 0 6px}
+.help{font-size:14px;color:#596c74;margin:4px 0 0}
+input[type=text],input[type=email],input[type=tel],input[type=url],textarea,select{width:100%;border:1px solid #b9c8ce;border-radius:4px;padding:11px;font:inherit;background:#fff;color:var(--ink)}
+textarea{min-height:130px;resize:vertical}
+button{font:inherit;cursor:pointer;border:1px solid #b9c8ce;border-radius:4px;background:#fff;color:var(--accent);padding:11px 16px;min-height:46px}
+button:hover{background:#edf3f5}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid #a2bfca;outline-offset:2px}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button.primary:hover{background:var(--accent-dark)}
+button:disabled{opacity:.55;cursor:wait}
+fieldset{border:0;padding:0;margin:0}
+.opts{display:grid;gap:8px;margin-top:6px}
+.opt{display:flex;gap:10px;align-items:flex-start;font-weight:400;margin:0;padding:8px 10px;border:1px solid var(--line);border-radius:4px;cursor:pointer}
+.opt input{margin:3px 0 0;width:18px;height:18px;accent-color:var(--accent);flex:none}
+.opt:hover{background:#f7fafb}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.msg{margin:0 0 18px;padding:12px 14px;border-radius:4px;font-size:15px}
+.msg.error{background:#fbecec;border:1px solid #e8c4c4;color:var(--danger)}
+.msg.ok{background:#eaf5ee;border:1px solid #c4e2cf;color:var(--ok)}
+.msg:empty{display:none}
+.req{color:var(--danger);margin-left:2px}
+.counter{font-size:12px;color:#6e8188;text-align:right;margin-top:4px}
+.muted{font-size:14px;color:var(--muted)}
+footer{margin-top:26px;font-size:13px;color:#6e8188;text-align:center}
+code{background:#eef2f3;padding:2px 6px;border-radius:3px;font-size:15px}
+.wrapTable{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:#eef3f4;font-size:13px;white-space:nowrap}
+.rowActions{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 16px}
+</style>
+</head>
+<body><main>
+<header><p class="eyebrow" id="eyebrow">Inscrições</p><h1 id="titulo">Carregando…</h1><p id="descricao"></p><p id="intro"></p></header>
+<div id="aviso" class="msg" role="status" aria-live="polite"></div>
+<section class="card" id="carregando">Carregando formulário…</section>
+<form id="form" hidden novalidate>
+  <div class="card" id="campos"></div>
+  <div class="hp" aria-hidden="true"><label>Não preencha este campo<input id="website" tabindex="-1" autocomplete="off"></label></div>
+  <button class="primary" type="submit" id="enviar" style="width:100%">Enviar inscrição</button>
+  <p class="muted" id="consentNote"></p>
+</form>
+<section class="card" id="sucesso" hidden>
+  <h2>Inscrição registrada</h2>
+  <p id="sucessoTexto"></p>
+  <p class="muted">Guarde o protocolo. Se precisar corrigir algo, responda o e-mail de confirmação.</p>
+</section>
+<section class="card" id="encerrado" hidden><h2>Inscrições encerradas</h2><p id="encerradoTexto"></p></section>
+<section id="admin" hidden>
+  <div class="card">
+    <h2 id="adminTitulo">Respostas</h2>
+    <div class="rowActions">
+      <button type="button" id="adminAtualizar">Atualizar</button>
+      <button type="button" id="adminCsv">Baixar CSV</button>
+      <button type="button" id="adminFechar">Encerrar inscrições</button>
+    </div>
+    <p class="muted" id="adminResumo"></p>
+    <div class="wrapTable" id="adminTabela"></div>
+  </div>
+</section>
+<footer id="rodape"></footer>
+</main>
+<script>
+const BACKEND = "https://script.google.com/macros/s/AKfycbzxH6yjSwWMv9rIlh6hriwLy9A6Xy5YlRQkQHORFG931jaDDvUPKfCbmoJtAWoMEKC1GA/exec";
+const THEME = {"accent":"#1f6b46","accentDark":"#145233"};
+const $ = id => document.getElementById(id);
+const ADMIN = new URLSearchParams(location.hash.slice(1)).get('admin') || '';
+let SCHEMA = null, requestId = null, ADMIN_DATA = null;
+
+if (THEME && THEME.accent) {
+  document.documentElement.style.setProperty('--accent', THEME.accent);
+  document.documentElement.style.setProperty('--accent-dark', THEME.accentDark || THEME.accent);
+}
+
+function mensagem(texto, erro) {
+  $('aviso').textContent = texto || '';
+  $('aviso').className = 'msg ' + (erro ? 'error' : 'ok');
+}
+async function api(action, ...args) {
+  let response, data;
+  try {
+    response = await fetch(BACKEND, {
+      method: 'POST', mode: 'cors', credentials: 'omit',
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+      body: JSON.stringify({ action, args }),
+      cache: 'no-store', redirect: 'follow', signal: AbortSignal.timeout(45000),
+    });
+    data = await response.json();
+  } catch {
+    const err = new Error('Não foi possível receber a resposta do servidor. Confira sua conexão e tente novamente.');
+    err.connection = true;
+    throw err;
+  }
+  if (!response.ok || !data.ok) throw new Error(data.error || 'Não foi possível concluir. Tente novamente.');
+  return data.data;
+}
+function uuid() {
+  if (crypto.randomUUID) return crypto.randomUUID();
+  const b = crypto.getRandomValues(new Uint8Array(16));
+  return [...b].map(x => x.toString(16).padStart(2, '0')).join('');
+}
+
+// ── renderização dos campos ─────────────────────────────────────────────
+function criarCampo(f) {
+  const bloco = document.createElement('div');
+  bloco.className = 'field';
+
+  const ajuda = () => {
+    if (!f.help) return null;
+    const p = document.createElement('p');
+    p.className = 'help'; p.textContent = f.help;
+    return p;
+  };
+
+  if (f.type === 'radio' || f.type === 'checkbox') {
+    const fs = document.createElement('fieldset');
+    const lg = document.createElement('legend');
+    lg.className = 'legend'; lg.textContent = f.label;
+    if (f.required) {
+      const s = document.createElement('span'); s.className = 'req'; s.textContent = '*';
+      lg.append(s);
+    }
+    fs.append(lg);
+    const opts = document.createElement('div'); opts.className = 'opts';
+    f.options.forEach(o => {
+      const lab = document.createElement('label'); lab.className = 'opt';
+      const inp = document.createElement('input');
+      inp.type = f.type === 'checkbox' ? 'checkbox' : 'radio';
+      inp.name = 'f_' + f.id; inp.value = o;
+      lab.append(inp, document.createTextNode(' ' + o));
+      opts.append(lab);
+    });
+    fs.append(opts);
+    bloco.append(fs);
+    const a = ajuda(); if (a) bloco.append(a);
+    return bloco;
+  }
+
+  if (f.type === 'consent') {
+    const lab = document.createElement('label'); lab.className = 'opt';
+    const inp = document.createElement('input');
+    inp.type = 'checkbox'; inp.id = 'f_' + f.id; inp.value = 'Sim';
+    lab.append(inp, document.createTextNode(' ' + f.label));
+    bloco.append(lab);
+    const a = ajuda(); if (a) bloco.append(a);
+    return bloco;
+  }
+
+  const lab = document.createElement('label'); lab.htmlFor = 'f_' + f.id;
+  lab.textContent = f.label;
+  if (f.required) {
+    const s = document.createElement('span'); s.className = 'req'; s.textContent = '*';
+    lab.append(s);
+  }
+  bloco.append(lab);
+
+  let el;
+  if (f.type === 'textarea') {
+    el = document.createElement('textarea');
+    el.rows = 5;
+    if (f.placeholder) el.placeholder = f.placeholder;
+    if (f.maxLength) el.maxLength = f.maxLength;
+  } else if (f.type === 'select') {
+    el = document.createElement('select');
+    const ph = document.createElement('option');
+    ph.value = ''; ph.textContent = 'Selecione…'; ph.disabled = true; ph.selected = true;
+    el.append(ph);
+    f.options.forEach(o => {
+      const op = document.createElement('option'); op.value = o; op.textContent = o;
+      el.append(op);
+    });
+  } else {
+    el = document.createElement('input');
+    el.type = f.type === 'tel' ? 'tel' : (f.type === 'url' ? 'url' : (f.type === 'email' ? 'email' : 'text'));
+    if (f.placeholder) el.placeholder = f.placeholder;
+    if (f.maxLength) el.maxLength = f.maxLength;
+    if (f.autocomplete) el.autocomplete = f.autocomplete;
+  }
+  el.id = 'f_' + f.id;
+  if (f.type !== 'select' && f.minLength) el.minLength = f.minLength;
+  el.required = !!f.required;
+  bloco.append(el);
+  const a = ajuda(); if (a) bloco.append(a);
+  if (f.type === 'textarea' && f.maxLength) {
+    const c = document.createElement('div'); c.className = 'counter';
+    const atualizar = () => { c.textContent = el.value.length + ' / ' + f.maxLength; };
+    el.addEventListener('input', atualizar); atualizar();
+    bloco.append(c);
+  }
+  return bloco;
+}
+
+function renderCampos() {
+  $('campos').replaceChildren(...SCHEMA.fields.map(criarCampo));
+  $('consentNote').textContent = SCHEMA.consentNote || '';
+}
+
+function valorDe(f) {
+  if (f.type === 'checkbox') {
+    return [...document.querySelectorAll('input[name="f_' + f.id + '"]:checked')].map(i => i.value);
+  }
+  if (f.type === 'radio') {
+    const c = document.querySelector('input[name="f_' + f.id + '"]:checked');
+    return c ? c.value : '';
+  }
+  if (f.type === 'consent') {
+    const el = $('f_' + f.id);
+    return el && el.checked ? 'Sim' : '';
+  }
+  const el = $('f_' + f.id);
+  return el ? el.value : '';
+}
+
+function validarCliente() {
+  const erros = [];
+  for (const f of SCHEMA.fields) {
+    const v = valorDe(f);
+    if (f.type === 'checkbox') {
+      if (f.required && !v.length) erros.push('Marque ao menos uma opção em "' + f.label + '".');
+      continue;
+    }
+    if (f.type === 'consent') {
+      if (f.required && v !== 'Sim') erros.push('É necessário aceitar "' + f.label + '".');
+      continue;
+    }
+    const t = String(v).trim();
+    if (f.required && !t) erros.push('Preencha "' + f.label + '".');
+    if (t && f.minLength && t.length < f.minLength) erros.push('"' + f.label + '" precisa de pelo menos ' + f.minLength + ' caracteres.');
+    if (t && f.type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t)) erros.push('Informe um e-mail válido em "' + f.label + '".');
+    if (t && f.type === 'tel' && !/^[+()\d\s-]{8,20}$/.test(t)) erros.push('Informe um telefone válido em "' + f.label + '".');
+    if (t && f.type === 'url' && !/^https?:\/\/\S+$/i.test(t)) erros.push('O endereço em "' + f.label + '" precisa começar com http:// ou https://.');
+  }
+  if (erros.length) throw new Error(erros[0]);
+}
+
+// ── envio ──────────────────────────────────────────────────────────────
+$('form').onsubmit = async e => {
+  e.preventDefault();
+  if (!SCHEMA) return;
+  try { validarCliente(); } catch (err) { mensagem(err.message, true); return; }
+  requestId = requestId || uuid();
+  $('enviar').disabled = true;
+  try {
+    const values = {};
+    for (const f of SCHEMA.fields) values[f.id] = valorDe(f);
+    const r = await api('submit', { requestId, ...values, website: $('website').value });
+    requestId = null;
+    $('form').hidden = true;
+    $('sucesso').hidden = false;
+    $('sucessoTexto').textContent = 'Protocolo ' + r.protocol + (r.name ? ' — ' + r.name : '') + '.';
+    mensagem('Inscrição registrada com sucesso.', false);
+    $('sucesso').scrollIntoView({ behavior: 'smooth' });
+  } catch (err) {
+    mensagem(err.connection
+      ? 'A conexão foi interrompida. Clique novamente em Enviar para consultar o resultado — não será registrado em duplicidade.'
+      : err.message, true);
+    if (!err.connection) requestId = null;
+  } finally {
+    $('enviar').disabled = false;
+  }
+};
+
+// ── administração ──────────────────────────────────────────────────────
+function celula(texto) { const td = document.createElement('td'); td.textContent = texto == null ? '' : texto; return td; }
+
+function renderTabela(d) {
+  const tabela = document.createElement('table');
+  const thead = document.createElement('thead');
+  const trh = document.createElement('tr');
+  ['Data'].concat(d.fields.map(f => f.label), ['Ações']).forEach(t => {
+    const th = document.createElement('th'); th.textContent = t; trh.append(th);
+  });
+  thead.append(trh); tabela.append(thead);
+  const tbody = document.createElement('tbody');
+  d.rows.forEach(r => {
+    const tr = document.createElement('tr');
+    const quando = r.criadoEm ? new Date(r.criadoEm) : null;
+    tr.append(celula(quando && !isNaN(quando) ? quando.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : r.criadoEm));
+    d.fields.forEach(f => tr.append(celula(r.values[f.id])));
+    const td = document.createElement('td');
+    const b = document.createElement('button');
+    b.type = 'button'; b.textContent = 'Excluir';
+    b.onclick = async () => {
+      if (!confirm('Excluir a resposta de ' + (r.values[d.fields[0].id] || 'sem nome') + '?')) return;
+      try { await api('adminDelete', ADMIN, r.id); mensagem('Resposta excluída.', false); await carregarAdmin(); }
+      catch (err) { mensagem(err.message, true); }
+    };
+    td.append(b); tr.append(td);
+    tbody.append(tr);
+  });
+  tabela.append(tbody);
+  $('adminTabela').replaceChildren(tabela);
+}
+
+async function carregarAdmin() {
+  try {
+    const d = await api('adminList', ADMIN);
+    ADMIN_DATA = d;
+    $('adminTitulo').textContent = d.title;
+    $('adminResumo').textContent = d.rows.length + (d.rows.length === 1 ? ' resposta' : ' respostas') +
+      ' · ' + (d.status.open ? 'inscrições abertas' : 'inscrições encerradas') + ' · planilha: ' + d.sheetUrl;
+    $('adminFechar').textContent = d.status.open ? 'Encerrar inscrições' : 'Reabrir inscrições';
+    renderTabela(d);
+  } catch (err) { mensagem(err.message, true); }
+}
+
+function csvCampo(v) { return '"' + String(v == null ? '' : v).replace(/^[=+@-]/, "'$&").replace(/"/g, '""') + '"'; }
+function baixarCsv() {
+  if (!ADMIN_DATA) return;
+  const cols = ADMIN_DATA.fields.map(f => f.label);
+  const linhas = [['Data'].concat(cols, ['Status'])].concat(ADMIN_DATA.rows.map(r => {
+    const quando = r.criadoEm ? new Date(r.criadoEm) : null;
+    return [(quando && !isNaN(quando) ? quando.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : r.criadoEm)]
+      .concat(ADMIN_DATA.fields.map(f => r.values[f.id]), [r.status]);
+  }));
+  const csv = '\uFEFF' + linhas.map(l => l.map(csvCampo).join(';')).join('\r\n');
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = 'respostas-' + (new Date().toISOString().slice(0, 10)) + '.csv';
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+async function alternarInscricoes() {
+  try {
+    const d = ADMIN_DATA && ADMIN_DATA.status && ADMIN_DATA.status.open
+      ? await api('adminClose', ADMIN)
+      : await api('adminReopen', ADMIN);
+    mensagem(d.open ? 'Inscrições reabertas.' : 'Inscrições encerradas.', false);
+    await carregarAdmin();
+  } catch (err) { mensagem(err.message, true); }
+}
+
+async function iniciarAdmin() {
+  document.querySelector('header').hidden = true;
+  $('form').hidden = true;
+  $('carregando').hidden = true;
+  $('admin').hidden = false;
+  $('adminAtualizar').onclick = carregarAdmin;
+  $('adminCsv').onclick = baixarCsv;
+  $('adminFechar').onclick = alternarInscricoes;
+  await carregarAdmin();
+}
+
+// ── inicialização ──────────────────────────────────────────────────────
+async function iniciar() {
+  if (ADMIN) return iniciarAdmin();
+  try {
+    SCHEMA = await api('getForm');
+    document.title = SCHEMA.title;
+    $('eyebrow').textContent = SCHEMA.eyebrow || 'Inscrições';
+    $('titulo').textContent = SCHEMA.title;
+    $('descricao').textContent = SCHEMA.description || '';
+    $('intro').textContent = SCHEMA.intro || '';
+    if (!SCHEMA.intro) $('intro').hidden = true;
+    $('rodape').textContent = SCHEMA.footer || '';
+    if (!SCHEMA.status.open) {
+      $('carregando').hidden = true;
+      $('encerrado').hidden = false;
+      $('encerradoTexto').textContent = SCHEMA.status.message || 'As inscrições estão encerradas.';
+      return;
+    }
+    renderCampos();
+    $('carregando').hidden = true;
+    $('form').hidden = false;
+  } catch (err) {
+    $('carregando').textContent = 'Não foi possível carregar o formulário.';
+    mensagem(err.message, true);
+  }
+}
+iniciar();
+</script>
+</body>
+</html>
