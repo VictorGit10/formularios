@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Painel — Central de Formulários</title>
+<style>
+:root{--accent:#274c59;--accent-dark:#193b48;--bg:#f2f1ed;--ink:#24353c;--muted:#51616a;--line:#d5dddf;--danger:#8c2f2f;--ok:#245c3a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,sans-serif}
+main{max-width:1100px;margin:0 auto;padding:30px 22px 64px}
+h1{font:normal clamp(24px,4vw,32px)/1.2 Georgia,serif;margin:6px 0 8px;letter-spacing:-.3px}
+h2{font-size:18px;margin:0 0 8px}
+p{margin:6px 0}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:#536970;margin:0}
+.card{background:#fff;border:1px solid var(--line);border-radius:6px;padding:22px;margin:0 0 16px}
+.entrada{max-width:440px;margin:7vh auto 0}
+label{display:block;font-weight:600;margin:12px 0 6px}
+input[type=password],input[type=search]{width:100%;border:1px solid #b9c8ce;border-radius:4px;padding:11px;font:inherit;background:#fff;color:var(--ink)}
+button{font:inherit;cursor:pointer;border:1px solid #b9c8ce;border-radius:4px;background:#fff;color:var(--accent);padding:9px 14px;min-height:40px}
+button:hover{background:#edf3f5}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #a2bfca;outline-offset:2px}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button.primary:hover{background:var(--accent-dark)}
+button:disabled{opacity:.55;cursor:wait}
+button.link{background:none;border:0;padding:0;min-height:0;color:var(--muted);text-decoration:underline}
+.lembrar{display:flex;gap:8px;align-items:center;font-weight:400;margin:12px 0}
+.lembrar input{width:18px;height:18px;accent-color:var(--accent)}
+.msg{margin:0 0 14px;padding:10px 12px;border-radius:4px;font-size:14px}
+.msg.error{background:#fbecec;border:1px solid #e8c4c4;color:var(--danger)}
+.msg.ok{background:#eaf5ee;border:1px solid #c4e2cf;color:var(--ok)}
+.msg:empty{display:none}
+.muted{font-size:14px;color:var(--muted)}
+.topo{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap;margin-bottom:16px}
+.acoesTopo{display:flex;gap:8px;flex-wrap:wrap}
+.lista{display:grid;gap:12px}
+.formCard{background:#fff;border:1px solid var(--line);border-radius:6px;padding:16px 18px}
+.formCard h2{font-size:18px;margin:0 0 6px}
+.meta{display:flex;gap:6px 14px;flex-wrap:wrap;align-items:center;font-size:14px;color:var(--muted)}
+.meta a{color:var(--accent)}
+.barra{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;background:#eef3f4;color:var(--accent)}
+.pill.fechado{background:#fbecec;color:var(--danger)}
+.pill.pendente{background:#fff4e5;color:#8a5a00}
+.wrap{overflow-x:auto;margin-top:10px;border:1px solid var(--line);border-radius:4px}
+table{border-collapse:collapse;width:100%;font-size:14px;background:#fff}
+th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:#eef3f4;font-size:12px;font-weight:600;white-space:nowrap}
+td{white-space:nowrap}
+td.valor{white-space:normal;min-width:150px;max-width:340px;overflow-wrap:anywhere}
+tr:last-child td{border-bottom:0}
+.vazio{padding:16px;color:var(--muted);font-size:14px}
+.topoCard{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+footer{margin-top:26px;font-size:12px;color:#6e8188;text-align:center}
+@media(max-width:600px){
+  main{padding:22px 14px 48px}
+  .topo{flex-direction:column}
+  .acoesTopo{width:100%}
+  .acoesTopo button{flex:1}
+  .formCard{padding:14px}
+  .card{padding:16px}
+}
+</style>
+</head>
+<body><main>
+<section id="entrada" class="card entrada">
+  <p class="eyebrow">Central de Formulários</p>
+  <h1>Painel administrativo</h1>
+  <p class="muted">Entre com a chave do formulário ou com a chave mestra. A chave não vai no endereço.</p>
+  <form id="formEntrada" novalidate>
+    <label for="chave">Chave de acesso</label>
+    <input id="chave" type="password" autocomplete="current-password" required>
+    <label class="lembrar"><input id="lembrar" type="checkbox"> Lembrar neste navegador</label>
+    <button class="primary" type="submit" id="entrar" style="width:100%">Entrar</button>
+  </form>
+  <div id="avisoEntrada" class="msg" role="status" aria-live="polite"></div>
+</section>
+
+<section id="painel" hidden>
+  <header class="topo">
+    <div><p class="eyebrow" id="painelEyebrow">Painel</p><h1 id="painelTitulo">Formulários</h1></div>
+    <div class="acoesTopo">
+      <button type="button" id="atualizarOverview">Atualizar</button>
+      <button type="button" id="sair">Sair</button>
+    </div>
+  </header>
+  <div id="avisoPainel" class="msg" role="status" aria-live="polite"></div>
+  <div id="listaFormularios" class="lista"></div>
+</section>
+
+<section id="detalhe" hidden>
+  <header class="topo">
+    <div>
+      <button type="button" class="link" id="voltar">← Voltar</button>
+      <h1 id="detalheTitulo"></h1>
+      <p class="muted" id="detalheResumo"></p>
+    </div>
+    <div class="acoesTopo">
+      <button type="button" id="acaoStatus"></button>
+      <button type="button" id="baixarCsv">Baixar CSV</button>
+    </div>
+  </header>
+  <div id="avisoDetalhe" class="msg" role="status" aria-live="polite"></div>
+  <div class="card">
+    <label for="busca">Buscar nas respostas</label>
+    <input id="busca" type="search" placeholder="Nome, e-mail, qualquer valor…">
+    <p class="muted" id="tabelaResumo"></p>
+    <div class="wrap" id="tabela"></div>
+  </div>
+  <div class="card">
+    <div class="topoCard">
+      <h2>E-mails pendentes e falhos</h2>
+      <button type="button" id="reenviar">Reenviar pendentes</button>
+    </div>
+    <p class="muted" id="emailsResumo"></p>
+    <div class="wrap" id="emails"></div>
+  </div>
+</section>
+
+<footer>Central de Formulários · painel administrativo</footer>
+</main>
+<script>
+const BACKEND = "https://script.google.com/macros/s/AKfycbx7v3hYGUX8PIW0kuZPWKkJyK2CokoLrhmsteclK4qihPwDMW9jOaaRHxd7ltYkXgYpHw/exec";
+const $ = id => document.getElementById(id);
+let CHAVE = '', DADOS = null, DETALHE = null, EMAILS = null, FILTRO = '';
+
+function mensagem(id, texto, erro) {
+  const el = $(id);
+  el.textContent = texto || '';
+  el.className = 'msg ' + (erro ? 'error' : 'ok');
+}
+async function api(action, slug, ...args) {
+  let resposta, dados;
+  try {
+    resposta = await fetch(BACKEND, {
+      method: 'POST', mode: 'cors', credentials: 'omit',
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+      body: JSON.stringify({ action, slug: slug || undefined, args }),
+      cache: 'no-store', redirect: 'follow', signal: AbortSignal.timeout(45000),
+    });
+    dados = await resposta.json();
+  } catch {
+    throw new Error('Não foi possível falar com o servidor. Confira a conexão e tente novamente.');
+  }
+  if (!resposta.ok || !dados.ok) throw new Error(dados.error || 'Não foi possível concluir.');
+  return dados.data;
+}
+function lerChave() {
+  try { return localStorage.getItem('formularios.admin.key') || ''; } catch { return ''; }
+}
+function gravarChave(chave) {
+  try {
+    if (chave) localStorage.setItem('formularios.admin.key', chave);
+    else localStorage.removeItem('formularios.admin.key');
+  } catch { /* navegador sem localStorage */ }
+}
+function mostrar(qual) {
+  $('entrada').hidden = qual !== 'entrada';
+  $('painel').hidden = qual !== 'painel';
+  $('detalhe').hidden = qual !== 'detalhe';
+  window.scrollTo(0, 0);
+}
+function span(texto) { const s = document.createElement('span'); s.textContent = texto; return s; }
+function pill(texto, classe) { const s = document.createElement('span'); s.className = 'pill ' + (classe || ''); s.textContent = texto; return s; }
+function link(url, texto) {
+  const a = document.createElement('a');
+  a.href = url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = texto;
+  return a;
+}
+function paragrafo(texto, classe) { const p = document.createElement('p'); p.className = classe || ''; p.textContent = texto; return p; }
+function formatarData(iso) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return String(iso || '');
+  return d.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+}
+
+// ── visão geral ────────────────────────────────────────────────────────
+function renderOverview() {
+  if (!DADOS) return;
+  $('painelEyebrow').textContent = DADOS.master ? 'Chave mestra' : 'Acesso a um formulário';
+  $('painelTitulo').textContent = DADOS.master ? 'Todos os formulários' : 'Seu formulário';
+  const lista = $('listaFormularios');
+  lista.replaceChildren();
+  if (!DADOS.forms.length) {
+    lista.append(paragrafo('Nenhum formulário encontrado.', 'vazio'));
+    return;
+  }
+  for (const f of DADOS.forms) {
+    const card = document.createElement('article');
+    card.className = 'formCard';
+    const h = document.createElement('h2');
+    h.textContent = f.title;
+    card.append(h);
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    meta.append(span('slug: ' + f.slug));
+    meta.append(span(f.respostas + (f.respostas === 1 ? ' resposta' : ' respostas')));
+    meta.append(pill(f.aberto ? 'aberto' : 'encerrado', f.aberto ? '' : 'fechado'));
+    if (f.emailsPendentes) meta.append(pill(f.emailsPendentes + ' e-mail(s) pendente(s)', 'pendente'));
+    if (f.emailsFalharam) meta.append(pill(f.emailsFalharam + ' falha(s) de e-mail', 'fechado'));
+    if (f.pageUrl) meta.append(link(f.pageUrl, 'Abrir página'));
+    if (f.sheetUrl) meta.append(link(f.sheetUrl, 'Abrir planilha'));
+    card.append(meta);
+    const barra = document.createElement('div');
+    barra.className = 'barra';
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'primary'; b.textContent = 'Abrir respostas';
+    b.onclick = () => abrirFormulario(f.slug);
+    barra.append(b);
+    card.append(barra);
+    lista.append(card);
+  }
+}
+async function carregarOverview() {
+  try {
+    DADOS = await api('adminOverview', null, CHAVE);
+    renderOverview();
+    mostrar('painel');
+  } catch (err) {
+    mensagem('avisoPainel', err.message, true);
+    if (/restrito/i.test(err.message)) sair();
+  }
+}
+
+// ── detalhe do formulário ──────────────────────────────────────────────
+async function abrirFormulario(slug) {
+  mensagem('avisoPainel', '', false);
+  FILTRO = '';
+  $('busca').value = '';
+  try {
+    const [d, e] = await Promise.all([api('adminList', slug, CHAVE), api('adminEmails', slug, CHAVE)]);
+    DETALHE = d; EMAILS = e;
+    renderDetalhe();
+    mostrar('detalhe');
+  } catch (err) {
+    mensagem('avisoPainel', err.message, true);
+  }
+}
+async function recarregarDetalhe() {
+  const [d, e] = await Promise.all([api('adminList', DETALHE.slug, CHAVE), api('adminEmails', DETALHE.slug, CHAVE)]);
+  DETALHE = d; EMAILS = e;
+  renderDetalhe();
+}
+function renderDetalhe() {
+  if (!DETALHE) return;
+  $('detalheTitulo').textContent = DETALHE.title;
+  const total = DETALHE.rows.length;
+  $('detalheResumo').textContent = total + (total === 1 ? ' resposta' : ' respostas') + ' · ' +
+    (DETALHE.status.open ? 'inscrições abertas' : 'inscrições encerradas') +
+    (DETALHE.sheetUrl ? ' · planilha vinculada' : '');
+  $('acaoStatus').textContent = DETALHE.status.open ? 'Encerrar inscrições' : 'Reabrir inscrições';
+  renderTabela();
+  renderEmails();
+}
+function textoDaLinha(r) {
+  return [r.criadoEm].concat(DETALHE.fields.map(f => r.values[f.id])).join(' ').toLowerCase();
+}
+function renderTabela() {
+  const wrap = $('tabela');
+  wrap.replaceChildren();
+  const linhas = DETALHE.rows.filter(r => !FILTRO || textoDaLinha(r).includes(FILTRO));
+  $('tabelaResumo').textContent = linhas.length + ' de ' + DETALHE.rows.length + ' respostas' + (FILTRO ? ' · filtro: "' + FILTRO + '"' : '');
+  const tabela = document.createElement('table');
+  const thead = document.createElement('thead');
+  const trh = document.createElement('tr');
+  ['Data'].concat(DETALHE.fields.map(f => f.label), ['Ações']).forEach(t => {
+    const th = document.createElement('th'); th.textContent = t; trh.append(th);
+  });
+  thead.append(trh); tabela.append(thead);
+  const tbody = document.createElement('tbody');
+  if (!linhas.length) {
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = DETALHE.fields.length + 2;
+    td.className = 'vazio';
+    td.textContent = 'Nenhuma resposta.';
+    tr.append(td); tbody.append(tr);
+  } else {
+    for (const r of linhas) {
+      const tr = document.createElement('tr');
+      const data = document.createElement('td');
+      data.textContent = formatarData(r.criadoEm);
+      tr.append(data);
+      DETALHE.fields.forEach(f => {
+        const td = document.createElement('td');
+        td.className = 'valor';
+        td.textContent = r.values[f.id] == null ? '' : r.values[f.id];
+        tr.append(td);
+      });
+      const td = document.createElement('td');
+      const b = document.createElement('button');
+      b.type = 'button'; b.textContent = 'Excluir';
+      b.onclick = () => excluir(r);
+      td.append(b); tr.append(td);
+      tbody.append(tr);
+    }
+  }
+  tabela.append(tbody); wrap.append(tabela);
+}
+function renderEmails() {
+  const wrap = $('emails');
+  wrap.replaceChildren();
+  const pendentes = (EMAILS && EMAILS.pendentes) || [];
+  const falhados = (EMAILS && EMAILS.falhados) || [];
+  $('emailsResumo').textContent = pendentes.length + ' pendente(s) · ' + falhados.length +
+    ' falha(s). Falhas após 3 tentativas não são reenviadas automaticamente.';
+  $('reenviar').disabled = pendentes.length === 0;
+  if (!pendentes.length && !falhados.length) {
+    wrap.append(paragrafo('Nenhum e-mail pendente ou falho.', 'vazio'));
+    return;
+  }
+  const tabela = document.createElement('table');
+  const thead = document.createElement('thead');
+  const trh = document.createElement('tr');
+  ['ID da resposta', 'Para', 'Tipo', 'Situação', 'Tentativas', 'Último erro', 'Quando'].forEach(t => {
+    const th = document.createElement('th'); th.textContent = t; trh.append(th);
+  });
+  thead.append(trh); tabela.append(thead);
+  const tbody = document.createElement('tbody');
+  for (const r of pendentes.concat(falhados)) {
+    const tr = document.createElement('tr');
+    [r.id, r.para, r.tipo, r.situacao, String(r.tentativas), r.erro || '—', formatarData(r.quando)].forEach((t, i) => {
+      const td = document.createElement('td');
+      if (i === 5) td.className = 'valor';
+      td.textContent = t == null ? '' : t;
+      tr.append(td);
+    });
+    tbody.append(tr);
+  }
+  tabela.append(tbody); wrap.append(tabela);
+}
+
+// ── ações do detalhe ───────────────────────────────────────────────────
+async function excluir(r) {
+  const nome = (DETALHE.fields[0] && r.values[DETALHE.fields[0].id]) || 'sem nome';
+  if (!confirm('Excluir a resposta de ' + nome + '? Não dá para desfazer.')) return;
+  try {
+    await api('adminDelete', DETALHE.slug, CHAVE, r.id);
+    mensagem('avisoDetalhe', 'Resposta excluída.', false);
+    await recarregarDetalhe();
+  } catch (err) {
+    mensagem('avisoDetalhe', err.message, true);
+  }
+}
+async function alternarStatus() {
+  try {
+    const novo = DETALHE.status.open
+      ? await api('adminClose', DETALHE.slug, CHAVE)
+      : await api('adminReopen', DETALHE.slug, CHAVE);
+    mensagem('avisoDetalhe', novo.open ? 'Inscrições reabertas.' : 'Inscrições encerradas.', false);
+    await recarregarDetalhe();
+  } catch (err) {
+    mensagem('avisoDetalhe', err.message, true);
+  }
+}
+function csvCampo(v) {
+  return '"' + String(v == null ? '' : v).replace(/^[=+@-]/, "'$&").replace(/"/g, '""') + '"';
+}
+function baixarCsv() {
+  if (!DETALHE) return;
+  const linhas = [['Data'].concat(DETALHE.fields.map(f => f.label), ['Status'])]
+    .concat(DETALHE.rows.map(r => [formatarData(r.criadoEm)].concat(DETALHE.fields.map(f => r.values[f.id]), [r.status])));
+  const csv = '\uFEFF' + linhas.map(l => l.map(csvCampo).join(';')).join('\r\n');
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'respostas-' + (DETALHE.slug || 'formulario') + '-' + new Date().toISOString().slice(0, 10) + '.csv';
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+async function reenviarPendentes() {
+  $('reenviar').disabled = true;
+  let sucesso = false;
+  try {
+    const r = await api('adminResendPending', DETALHE.slug, CHAVE);
+    const partes = [];
+    if (r.enviados) partes.push(r.enviados + ' enviado(s)');
+    if (r.falharam) partes.push(r.falharam + ' falha(s)');
+    if (r.pendentes) partes.push(r.pendentes + ' ainda pendente(s)');
+    if (r.ignorados) partes.push(r.ignorados + ' recente(s), aguardando 3 min');
+    mensagem('avisoDetalhe', partes.length ? 'Reenvio: ' + partes.join(', ') + '.' : (r.motivo || 'Nada para reenviar.'), false);
+    await recarregarDetalhe();
+    sucesso = true;
+  } catch (err) {
+    mensagem('avisoDetalhe', err.message, true);
+  } finally {
+    if (!sucesso) $('reenviar').disabled = false;
+  }
+}
+
+// ── navegação e entrada ────────────────────────────────────────────────
+function voltar() {
+  DETALHE = null; EMAILS = null;
+  mostrar('painel');
+  carregarOverview();
+}
+function sair() {
+  CHAVE = ''; DADOS = null; DETALHE = null; EMAILS = null;
+  gravarChave('');
+  $('chave').value = '';
+  $('lembrar').checked = false;
+  mensagem('avisoEntrada', '', false);
+  mostrar('entrada');
+}
+
+$('formEntrada').onsubmit = async e => {
+  e.preventDefault();
+  const chave = $('chave').value.trim();
+  if (!chave) { mensagem('avisoEntrada', 'Digite a chave de acesso.', true); return; }
+  $('entrar').disabled = true;
+  try {
+    const dados = await api('adminOverview', null, chave);
+    CHAVE = chave;
+    gravarChave($('lembrar').checked ? chave : '');
+    DADOS = dados;
+    renderOverview();
+    mensagem('avisoEntrada', '', false);
+    mostrar('painel');
+  } catch (err) {
+    mensagem('avisoEntrada', err.message, true);
+  } finally {
+    $('entrar').disabled = false;
+  }
+};
+$('atualizarOverview').onclick = carregarOverview;
+$('sair').onclick = sair;
+$('voltar').onclick = voltar;
+$('acaoStatus').onclick = alternarStatus;
+$('baixarCsv').onclick = baixarCsv;
+$('reenviar').onclick = reenviarPendentes;
+$('busca').oninput = () => {
+  FILTRO = $('busca').value.trim().toLowerCase();
+  if (DETALHE) renderTabela();
+};
+
+const lembrada = lerChave();
+if (lembrada) {
+  CHAVE = lembrada;
+  $('lembrar').checked = true;
+  api('adminOverview', null, CHAVE)
+    .then(d => { DADOS = d; renderOverview(); mostrar('painel'); })
+    .catch(() => { CHAVE = ''; gravarChave(''); $('lembrar').checked = false; mostrar('entrada'); });
+} else {
+  mostrar('entrada');
+}
+</script>
+</body>
+</html>
